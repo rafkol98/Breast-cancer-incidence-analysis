@@ -25,21 +25,26 @@ pop_8017 <-
 
 
 ##### INCIDENCE RATE OF OUR POPULATION ####
-# Load age-specific incidence rate of our population.
+# Load age-specific incidence rate of our population. Include everything except
+# first and last columns.
 cases_0417 <- read_excel("./Data/brca_incidence_2004_17.xlsx",
                          skip=3,
                          n_max=19) %>% select(everything(), -1, -last_col())
 
-# Add the numbers in the last row (90+ label) with the numbers in the previous to last
+# Add the numbers in the last row (90+ label) with the numbers in the previous to last (85-89 label)
 # since our age bands in the standard population are 1-18, with the 18th including everyone 85+.
 age_90_over <- as.numeric(as.vector(cases_0417[18,]))
 cases_0417[18,] <- cases_0417[18,] + age_90_over 
-# After merging, drop the last column (over 90), since the data is now on the column for 85+.
+
+# After merging, drop the last column (over 90) -> since the data is now on the column for 85+.
 cases_0417 <- cases_0417[1:18,]
 
 # Convert the wide table to longer.
 cases_0417 <- cases_0417 %>% pivot_longer(cols = 1:ncol(cases_0417), names_to = "year",
                                           values_to = "cases") %>% arrange(year)
+
+# Enter age band for each year.
+cases_0417["age"] <- rep(c(1:18),times=length(unique(cases_0417$year)))
 
 
 # Read in the incidence rate for 1980 until 2003.
