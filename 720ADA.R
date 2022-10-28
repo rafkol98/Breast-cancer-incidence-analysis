@@ -35,15 +35,15 @@ european_standard <-
 # first and last columns.
 cases_0417 <- read_excel("./Data/brca_incidence_2004_17.xlsx",
                          skip = 3,
-                         n_max = 19) %>% select(everything(),-1,-last_col())
+                         n_max = 19) %>% select(everything(), -1, -last_col())
 
 # Add the numbers in the last row (90+ label) with the numbers in the previous to last (85-89 label)
 # since our age bands in the standard population are 1-18, with the 18th including everyone 85+.
-age_90_over <- as.numeric(as.vector(cases_0417[18, ]))
-cases_0417[18, ] <- cases_0417[18, ] + age_90_over
+age_90_over <- as.numeric(as.vector(cases_0417[18,]))
+cases_0417[18,] <- cases_0417[18,] + age_90_over
 
 # After merging, drop the last column (over 90) -> since the data is now on the column for 85+.
-cases_0417 <- cases_0417[1:18, ]
+cases_0417 <- cases_0417[1:18,]
 
 # Convert the wide table to longer.
 cases_0417 <-
@@ -118,32 +118,38 @@ combined_cases_population <-
   combined_cases_population %>% mutate(expected_incidence = crude_rate *
                                          age_distribution_proportions)
 
-# Calculate direct age standardised death rate (DASDR), standard error,
+# Calculate direct age standardised death rate (dasdr), standard error,
 # and the lower and upper 95 confidence intervals.
 dasdr_final_table <-
   combined_cases_population %>% group_by(year) %>% summarise(
-    DASDR = sum(expected_incidence),
-    standard_error = sqrt(sum(((
-      europop / 100000
-    ) ^ 2) * (
-      cases / (population ^ 2)
-    ))) * 100000,
-    lower_95_CI = DASDR - 1.96 * (standard_error),
-    upper_95_CI = DASDR + 1.96 * (standard_error)
+    dasdr = sum(expected_incidence),
+    standard_error = sqrt(sum(((europop / 100000 ) ^ 2) * (cases / (population ^ 2)))) * 100000,
+    lower_95_CI = dasdr - 1.96 * (standard_error),
+    upper_95_CI = dasdr + 1.96 * (standard_error)
   )
 
 # Drop the standard error before exporting the table (the exercise only asks for
 # incidence rate and the confidence intervals).
 dasdr_final_table <-
-  dasdr_final_table %>% select(everything(),-standard_error)
+  dasdr_final_table %>% select(everything(), -standard_error)
 
 # Round the columns to two decimal places.
 dasdr_final_table <-
   dasdr_final_table %>% mutate_if(is.numeric, round, digits = 2)
 
-# Export the final DASDR table.
+# Export the final dasdr table.
 write.csv(
   dasdr_final_table,
   "./Generated data/female_breast_cancer_incidence_standardised_80_17.csv",
   row.names = FALSE
 )
+
+# ggplot2 plot with confidence intervals
+ggplot(dasdr_final_table, aes(year, dasdr)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower_95_CI, ymax = upper_95_CI)) + theme(
+  axis.title.x = element_text(size = 18),
+  axis.title.y = element_text(size = 18),
+  axis.text.x = element_text(size = 14),
+  axis.text.y = element_text(size = 14),
+) + labs(x = "Years",  y = "Female breast cancer incidence rate")
