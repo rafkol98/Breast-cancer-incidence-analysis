@@ -104,26 +104,26 @@ combined_cases_population <-
 #### PART 1: YEARLY INCIDENCE RATE FROM 1980 TO 2017 ####
 
 # Combine cases and population
-combined_cases_population <-
+combined_cases_population_part1 <-
   combined_cases_population %>% mutate(crude_rate = (cases / population) * 100000)
 
 # Calculate age distribution proportions on standard population.
 european_standard <-
   european_standard %>% mutate(age_distribution_proportions = europop / sum(europop))
 
-# Combine the combined_cases_population dataframe with the european_standard.
-combined_cases_population <-
-  left_join(combined_cases_population, european_standard, by = "age")
+# Combine the combined_cases_population_part1 dataframe with the european_standard.
+combined_cases_population_part1 <-
+  left_join(combined_cases_population_part1, european_standard, by = "age")
 
 # Calculate expected incidence.
-combined_cases_population <-
-  combined_cases_population %>% mutate(expected_incidence = crude_rate *
-                                         age_distribution_proportions)
+combined_cases_population_part1 <-
+  combined_cases_population_part1 %>% mutate(expected_incidence = crude_rate *
+                                               age_distribution_proportions)
 
 # Calculate direct age standardised death rate (dasdr), standard error,
 # and the lower and upper 95 confidence intervals.
 dasdr_final_table <-
-  combined_cases_population %>% group_by(year) %>% summarise(
+  combined_cases_population_part1 %>% group_by(year) %>% summarise(
     dasdr = sum(expected_incidence),
     standard_error = sqrt(sum(((
       europop / 100000
@@ -161,14 +161,15 @@ plot_breast_cancer_incidence <-
     size = 4,
     shape = 22
   ) + theme(
-    axis.title.x = element_text(size = 18),
-    axis.title.y = element_text(size = 18),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
     axis.text.x = element_text(size = 14),
     axis.text.y = element_text(size = 14),
     plot.title = element_text(hjust = 0.5)
-  ) + labs(x = "Years",  y = "Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(100, 180, by = 10)) + ggtitle("Female breast cancer incidence in East Anglia (1980 to 2017)")
+  ) +  labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person years)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 180, by = 10), limits =
+                                                                                                                                                                        c(0, NA)) + ggtitle("Female breast cancer incidence in East Anglia (1980 to 2017)")
 
-
+plot_breast_cancer_incidence
 # TODO: ALTERNATIVES.
 
 
@@ -181,36 +182,19 @@ ggsave(
 
 #### PART 2 ####
 
-# Create new age groups for the age groups 20-49, 50-69, 70+ in a passed in dataframe.
-# If in age group 20-49 that means they are currently in the 5-10 age group. Assign them to new_age_gp = 1.
-# If in age group 50-69 that means they are currently in the 11-14 age group. Assign them to new_age_gp = 2.
-# If in age group 70+ that means they are currently in the 15-18 age group. Assign them to new_age_gp = 3.
-create_new_age_groups <- function(df) {
-  # Check if age exists in the passed in dataframe.
-  if ("age" %in% colnames(df)) {
-    # If it exists then mutate the passed in dataframe, introducing the new age
-    # groups.
-    df <- df %>% mutate(new_age_gp = case_when(
-      between(age, 1, 4) ~ 0,
-      between(age, 5, 10) ~ 1,
-      between(age, 11, 14) ~ 2,
-      between(age, 15, 18) ~ 3
-    ))
-    
-    # Drop any rows where their age is not in the interested groups. Drop previous age group
-    # feature.
-    df <-df %>% filter(new_age_gp != 0) %>% select(everything(),-age)
-  }
-  return(df)
-}
+# Create new age groups for the age groups 20-49, 50-69, 70+.
+# If between the age of 20-49 that means they are currently in the 5-10 age groups. Assign them to new_age_gp = 1.
+# If between the age of 50-69 that means they are currently in the 11-14 age groups. Assign them to new_age_gp = 2.
+# If between the age of 70+ that means they are currently in the 15-18 age groups. Assign them to new_age_gp = 3.
+combined_cases_population_part2 <-
+  combined_cases_population %>% mutate(new_age_gp = case_when(
+    between(age, 1, 4) ~ 0,
+    between(age, 5, 10) ~ 1,
+    between(age, 11, 14) ~ 2,
+    between(age, 15, 18) ~ 3
+  )) %>% filter(new_age_gp != 0) %>% select(everything(),-age)
 
-combined_cases_population_part2 <- create_new_age_groups(combined_cases_population)
-
-# Drop the age_distribution proportions that were claculated using the previous age groups.
-european_standard_part2 <- european_standard %>% select(everything(), -age_distribution_proportions)
-
-# Create new age groups and sum the europop based on the new_age_gp category.
-european_standard_part2 <- create_new_age_groups(european_standard_part2) %>% group_by(new_age_gp) %>% summarise(europop = sum(europop))
-
-
+# Group by year and new_age_gp. Summarise cases and population. Calculate age specific incidence rate for each year.
+combined_cases_population_part2 <-
+  combined_cases_population_part2  %>%  group_by(year, new_age_gp) %>% summarise(cases = sum(cases), population = sum(population)) %>% mutate(age_specific_incidence = (cases / population) * 100000)
 
