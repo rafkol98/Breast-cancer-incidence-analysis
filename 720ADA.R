@@ -98,10 +98,12 @@ cases_8003 <-
 cases_combined <-
   base::rbind(cases_8003, cases_0417) %>% arrange(year, age)
 
-#### PART 1: YEARLY INCIDENCE RATE FROM 1980 TO 2017 ####
-# Combine cases and population
 combined_cases_population <-
   left_join(cases_combined, pop_8017, by = c("year", "age"))
+
+#### PART 1: YEARLY INCIDENCE RATE FROM 1980 TO 2017 ####
+
+# Combine cases and population
 combined_cases_population <-
   combined_cases_population %>% mutate(crude_rate = (cases / population) * 100000)
 
@@ -123,7 +125,11 @@ combined_cases_population <-
 dasdr_final_table <-
   combined_cases_population %>% group_by(year) %>% summarise(
     dasdr = sum(expected_incidence),
-    standard_error = sqrt(sum(((europop / 100000 ) ^ 2) * (cases / (population ^ 2)))) * 100000,
+    standard_error = sqrt(sum(((
+      europop / 100000
+    ) ^ 2) * (
+      cases / (population ^ 2)
+    ))) * 100000,
     lower_95_CI = dasdr - 1.96 * (standard_error),
     upper_95_CI = dasdr + 1.96 * (standard_error)
   )
@@ -145,11 +151,66 @@ write.csv(
 )
 
 # ggplot2 plot with confidence intervals
-ggplot(dasdr_final_table, aes(year, dasdr)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = lower_95_CI, ymax = upper_95_CI)) + theme(
-  axis.title.x = element_text(size = 18),
-  axis.title.y = element_text(size = 18),
-  axis.text.x = element_text(size = 14),
-  axis.text.y = element_text(size = 14),
-) + labs(x = "Years",  y = "Female breast cancer incidence rate")
+plot_breast_cancer_incidence <-
+  ggplot(dasdr_final_table, aes(year, dasdr)) +
+  geom_errorbar(aes(ymin = lower_95_CI, ymax = upper_95_CI), colour = "grey65") +
+  geom_line() +
+  geom_point(
+    colour = "blue",
+    fill = "blue",
+    size = 4,
+    shape = 22
+  ) + theme(
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.title = element_text(hjust = 0.5)
+  ) + labs(x = "Years",  y = "Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(100, 180, by = 10)) + ggtitle("Female breast cancer incidence in East Anglia (1980 to 2017)")
+
+
+# TODO: ALTERNATIVES.
+
+
+# Save plot.
+ggsave(
+  "./Generated data/female breast cancer incidence (1980-2017).png",
+  plot_breast_cancer_incidence
+)
+
+
+#### PART 2 ####
+
+# Create new age groups for the age groups 20-49, 50-69, 70+ in a passed in dataframe.
+# If in age group 20-49 that means they are currently in the 5-10 age group. Assign them to new_age_gp = 1.
+# If in age group 50-69 that means they are currently in the 11-14 age group. Assign them to new_age_gp = 2.
+# If in age group 70+ that means they are currently in the 15-18 age group. Assign them to new_age_gp = 3.
+create_new_age_groups <- function(df) {
+  # Check if age exists in the passed in dataframe.
+  if ("age" %in% colnames(df)) {
+    # If it exists then mutate the passed in dataframe, introducing the new age
+    # groups.
+    df <- df %>% mutate(new_age_gp = case_when(
+      between(age, 1, 4) ~ 0,
+      between(age, 5, 10) ~ 1,
+      between(age, 11, 14) ~ 2,
+      between(age, 15, 18) ~ 3
+    ))
+    
+    # Drop any rows where their age is not in the interested groups. Drop previous age group
+    # feature.
+    df <-df %>% filter(new_age_gp != 0) %>% select(everything(),-age)
+  }
+  return(df)
+}
+
+combined_cases_population_part2 <- create_new_age_groups(combined_cases_population)
+
+# Drop the age_distribution proportions that were claculated using the previous age groups.
+european_standard_part2 <- european_standard %>% select(everything(), -age_distribution_proportions)
+
+# Create new age groups and sum the europop based on the new_age_gp category.
+european_standard_part2 <- create_new_age_groups(european_standard_part2) %>% group_by(new_age_gp) %>% summarise(europop = sum(europop))
+
+
+
