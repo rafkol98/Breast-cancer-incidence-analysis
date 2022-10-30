@@ -103,6 +103,7 @@ cases_combined <-
 combined_cases_population <-
   full_join(cases_combined, pop_8017, by = c("year", "age")) %>% replace(is.na(.), 0)
 
+
 #### PART 1: YEARLY INCIDENCE RATE FROM 1980 TO 2017 ####
 # Combine cases and population
 combined_cases_population_part1 <-
@@ -226,5 +227,4 @@ final_table_part2 <-
 
 # Scatter plot for age specific incidence (part 2).
 ggplot(final_table_part2, aes(x=year, y=incidence, color=new_age_gp, shape=new_age_gp)) + geom_point() +
-  labs(x = "Year",  y = "Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 500, by = 50), limits =  c(0, NA)) + ggtitle("Age specific female breast cancer incidence (1980 to 2017)") + my_theme
-
+  labs(x = "Year",  y = "Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 500, by = 50), limits =  c(0, NA)) + ggtitle("Age specific female breast cancer incidence (1980 to 2017)") + my_theme + scale_colour_discrete(name="Age group", labels=c("20-49","50-69","70+")) + scale_shape_discrete(name="Age group", labels=c("20-49","50-69","70+"))
