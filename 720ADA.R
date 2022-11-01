@@ -1,5 +1,5 @@
 # Initialise required packages.
-required_packages <- c('tidyverse', 'readxl', 'lubridate')
+required_packages <- c('tidyverse', 'readxl', 'lubridate', 'lemon')
 
 # Install and load required packages.
 for (p in required_packages) {
@@ -30,12 +30,13 @@ pop_8017 <-
 european_standard <-
   read_excel("./Data/european-standard-pop.xlsx") %>% rename(age = ageband)
 
-##### INCIDENCE RATE OF OUR POPULATION ####
-# Load age-specific incidence rate of our population. Include everything except
+
+##### CASES IN OUR POPULATION ####
+# Load age-specific breast cancer incidence of our population. Include everything except
 # first and last columns.
 cases_0417 <- read_excel("./Data/brca_incidence_2004_17.xlsx",
                          skip = 3,
-                         n_max = 19) %>% select(everything(),-1,-last_col())
+                         n_max = 19) %>% select(everything(), -1, -last_col())
 
 # Add the numbers in the last row (90+ label) with the numbers in the previous to last (85-89 label)
 # since our age bands in the standard population are 1-18, with the 18th including everyone 85+.
@@ -54,7 +55,7 @@ cases_0417 <-
   ) %>% arrange(year)
 
 # Enter age band for each year. Creates an array from 1 to 18,
-# repeats it n times -> n = length of unique years in the dataset.
+# repeats it n times. n = length of unique years in the dataset.
 cases_0417["age"] <-
   rep(c(1:18), times = length(unique(cases_0417$year)))
 
@@ -145,26 +146,21 @@ dasdr_final_table <-
 dasdr_final_table <-
   dasdr_final_table %>% mutate_if(is.numeric, round, digits = 2)
 
-# Export the final dasdr table.
-write.csv(
-  dasdr_final_table,
-  "./Generated data/female_breast_cancer_incidence_standardised_80_17.csv",
-  row.names = FALSE
-)
-
-
-my_theme <- theme(
+# Create my own theme - to be used in all the plots I will generate.
+my_theme <- theme (
   axis.title.x = element_text(size = 16),
   axis.title.y = element_text(size = 16),
   axis.text.x = element_text(size = 14, angle=45, hjust=1),
   axis.text.y = element_text(size = 14),
   plot.title = element_text(hjust = 0.5),
-  panel.grid.minor.x = element_blank()
+  panel.border = element_blank()
 )
 
+# TODO: add a bit of border on top.
 # Line plot with confidence intervals
 plot_breast_cancer_incidence <-
   ggplot(dasdr_final_table, aes(year, dasdr)) +
+  # Remove x-axis line and ticks
   geom_line(col = 'red') +
   geom_point(
     colour = 'red',
@@ -172,16 +168,9 @@ plot_breast_cancer_incidence <-
     size = 2,
     shape = 22
   ) +
-  geom_ribbon(aes(ymin = lower_95_CI, ymax = upper_95_CI), alpha = 0.1) + labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person years)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 180, by = 10), limits =
-                                                                                                                                                                                                                                           c(0, NA)) + ggtitle("Female breast cancer incidence in East Anglia (1980 to 2017)") + my_theme
+  geom_ribbon(aes(ymin = lower_95_CI, ymax = upper_95_CI), alpha = 0.1) + labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person years)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5), minor_breaks = 0) + scale_y_continuous(breaks = seq(0, 200, by = 20), limits =
+                                                                                                                                                                                                                                           c(0, NA), expand = c(0, 0)) + theme_bw() + my_theme
 plot_breast_cancer_incidence
-
-# # Save plot.
-# ggsave(
-#   "./Generated data/female breast cancer incidence (1980-2017).png",
-#   plot_breast_cancer_incidence
-# )
-
 
 # ALTERNATIVE 1: change in confidence intervals visualisation.
 plot_breast_cancer_incidence_alt1 <-
@@ -193,8 +182,8 @@ plot_breast_cancer_incidence_alt1 <-
     fill = "red",
     size = 2,
     shape = 22
-  ) + labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person years)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 180, by = 10), limits =
-                                                                                                                                                                       c(0, NA)) + ggtitle("Female breast cancer incidence in East Anglia (1980 to 2017)") + my_theme
+  ) + labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person years)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 200, by = 10), limits =
+                                                                                                                                                                       c(0, NA), expand = c(0, 10)) + ggtitle("Female breast cancer incidence in East Anglia (1980 to 2017)") + theme_bw() + my_theme
 plot_breast_cancer_incidence_alt1                                                                                                                    
 
 # ALTERNATIVE 2: Bar plots with condfidence intervals.
@@ -202,7 +191,7 @@ plot_breast_cancer_incidence_alt2 <-
   ggplot(dasdr_final_table, aes(year, dasdr)) +
   geom_bar(fill = "red",  stat = "identity", alpha = 0.7) +
   geom_errorbar(aes(ymin = lower_95_CI, ymax = upper_95_CI), colour = "grey30") +
-  labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person years)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 180, by = 10), limits =  c(0, NA)) + ggtitle("Female breast cancer incidence in East Anglia (1980 to 2017)") + my_theme
+  labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person years)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 200, by = 10), limits =  c(0, NA), expand = c(0, 10)) + ggtitle("Female breast cancer incidence in East Anglia (1980 to 2017)") + theme_bw() + my_theme
 
 plot_breast_cancer_incidence_alt2
 
@@ -225,6 +214,10 @@ combined_cases_population_part2 <-
 final_table_part2 <-
   combined_cases_population_part2  %>%  group_by(year, new_age_gp) %>% summarise(cases = sum(cases), population = sum(population)) %>% mutate(incidence = (cases / population) * 100000)
 
+# Round the columns to two decimal places.
+final_table_part2 <-
+  final_table_part2 %>% mutate_if(is.numeric, round, digits = 2)
+
 # Scatter plot for age specific incidence (part 2).
 ggplot(final_table_part2, aes(x=year, y=incidence, color=new_age_gp, shape=new_age_gp)) + geom_point() +
-  labs(x = "Year",  y = "Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 500, by = 50), limits =  c(0, NA)) + ggtitle("Age specific female breast cancer incidence (1980 to 2017)") + my_theme + scale_colour_discrete(name="Age group", labels=c("20-49","50-69","70+")) + scale_shape_discrete(name="Age group", labels=c("20-49","50-69","70+"))
+  labs(x = "Year",  y = "Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 500, by = 50), limits =  c(0, NA)) + ggtitle("Age specific female breast cancer incidence (1980 to 2017)") + theme_bw() + my_theme + scale_colour_discrete(name="Age group", labels=c("20-49","50-69","70+")) + scale_shape_discrete(name="Age group", labels=c("20-49","50-69","70+"))
