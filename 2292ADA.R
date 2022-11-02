@@ -146,6 +146,10 @@ dasdr_final_table <-
 dasdr_final_table <-
   dasdr_final_table %>% mutate_if(is.numeric, round, digits = 2)
 
+
+# Reduce the opacity of the grid lines.
+col_grid <- rgb(225, 225, 225, 100, maxColorValue = 255)
+
 # Create my own theme - to be used in all the plots I will generate.
 my_theme <- theme (
   axis.title.x = element_text(size = 16),
@@ -153,7 +157,9 @@ my_theme <- theme (
   axis.text.x = element_text(size = 14, angle=45, hjust=1),
   axis.text.y = element_text(size = 14),
   plot.title = element_text(hjust = 0.5),
-  panel.border = element_blank()
+  panel.border = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.grid = element_line(color = col_grid)
 )
 
 # TODO: add a bit of border on top.
@@ -168,7 +174,7 @@ plot_breast_cancer_incidence <-
     size = 2,
     shape = 22
   ) +
-  geom_ribbon(aes(ymin = lower_95_CI, ymax = upper_95_CI), alpha = 0.1) + labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person years)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5), minor_breaks = 0) + scale_y_continuous(breaks = seq(0, 200, by = 20), limits =
+  geom_ribbon(aes(ymin = lower_95_CI, ymax = upper_95_CI), alpha = 0.1) + labs(x = "Year",  y = "Age-standardised incidence rate \n (100,000 person-yrs)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5), minor_breaks = 0) + scale_y_continuous(breaks = seq(0, 200, by = 20), limits =
                                                                                                                                                                                                                                            c(0, NA), expand = c(0, 0)) + theme_bw() + my_theme
 plot_breast_cancer_incidence
 
@@ -218,6 +224,37 @@ final_table_part2 <-
 final_table_part2 <-
   final_table_part2 %>% mutate_if(is.numeric, round, digits = 2)
 
+#TODO : convert final table to wide format.
+
 # Scatter plot for age specific incidence (part 2).
-ggplot(final_table_part2, aes(x=year, y=incidence, color=new_age_gp, shape=new_age_gp)) + geom_point() +
-  labs(x = "Year",  y = "Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 500, by = 50), limits =  c(0, NA)) + ggtitle("Age specific female breast cancer incidence (1980 to 2017)") + theme_bw() + my_theme + scale_colour_discrete(name="Age group", labels=c("20-49","50-69","70+")) + scale_shape_discrete(name="Age group", labels=c("20-49","50-69","70+"))
+plot_part2 = ggplot(final_table_part2, aes(x=year, y=incidence, colour=new_age_gp, shape=new_age_gp)) + geom_line(lwd=1) + geom_point(size=2.2) +
+  labs(x = "Year",  y = "Crude Incidence \n (100,000 person-yrs)") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 470, by = 50), limits =  c(0, NA), expand = expansion(mult = c(0, .1))) + theme_bw() + my_theme + scale_color_manual(name="Age group", limits = c("70+","50-69", "20-49"), values=c("#0072B2", "#E69F00", "#AA00AA")) + scale_shape_discrete(name="Age group", limits = c("70+","50-69", "20-49"))
+
+plot_part2
+
+
+
+# Create my own theme - to be used in all the plots I will generate.
+my_theme_grid <- theme (
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  axis.text.x = element_text(size = 14, angle=45, hjust=1),
+  axis.text.y = element_text(size = 14),
+  plot.title = element_text(hjust = 0.5),
+  panel.border = element_blank(),
+  panel.grid = element_line(color = rgb(125, 125, 125, 100, maxColorValue = 255))
+)
+
+# ALTERNATIVE 1: Axis labels
+plot_part2 = ggplot(final_table_part2, aes(x=year, y=incidence, colour=new_age_gp, shape=new_age_gp)) + geom_line(lwd=1) + geom_point(size=2.2) +
+  labs(x = "Year",  y = "Crude Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 470, by = 50), limits =  c(0, NA), expand = expansion(mult = c(0, .1))) + theme_bw() + my_theme_grid + scale_color_manual(limits = c("70+","50-69", "20-49"), values=c("#0072B2", "#E69F00", "#AA00AA")) + scale_shape_discrete(limits = c("70+","50-69", "20-49"))
+
+plot_part2
+
+
+
+# Scatter plot for age specific incidence (part 2).
+alternative_1_part2 = ggplot(final_table_part2, aes(x=year, y=incidence, colour=new_age_gp)) + geom_point() +
+  labs(x = "Year",  y = "Incidence") + scale_x_continuous(breaks = seq(1980, 2017, by = 5)) + scale_y_continuous(breaks = seq(0, 470, by = 50), limits =  c(0, NA), expand = expansion(mult = c(0, .1))) + theme_bw() + my_theme
+
+alternative_1_part2 
