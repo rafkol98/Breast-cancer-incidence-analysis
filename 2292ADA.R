@@ -277,7 +277,7 @@ combined_cases_population_part2 <-
   select(everything(), -age)
 
 # Group by year and new_age_gp. Summarise cases and population. Calculate age specific incidence rate for each year.
-final_table_part2 <-
+table_part2 <-
   combined_cases_population_part2 %>%
   group_by(year, new_age_gp) %>%
   summarise(cases = sum(cases), population = sum(population)) %>%
@@ -285,15 +285,16 @@ final_table_part2 <-
 
 # Round the columns to two decimal places.
 final_table_part2 <-
-  final_table_part2 %>% mutate_if(is.numeric, round, digits = 2)
+  table_part2 %>% mutate_if(is.numeric, round, digits = 2)
 
 # Convert final table to wide format. First keep only year, age group and incidence columns
 # and then convert the table from long to wide format.
+# This wider format is appropriate for the report.
 final_table_part2_wider <- final_table_part2 %>%
   select(year, new_age_gp, incidence) %>%
   pivot_wider(names_from = new_age_gp, values_from = incidence)
 
-# Export table to csv.
+# Export widertable to csv.
 # write.csv(final_table_part2_wider, "Generated tables/table_2_wide.csv", row.names = FALSE)
 
 # Scatter plot combined with line plot for age specific incidence (part 2).
